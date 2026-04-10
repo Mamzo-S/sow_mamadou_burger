@@ -5,9 +5,9 @@ services:
     restart: unless-stopped
     environment:
       MYSQL_DATABASE: isiburger_db
-      MYSQL_USER: root
-      MYSQL_PASSWORD:
-      MYSQL_ROOT_PASSWORD:
+      MYSQL_USER: laravel
+      MYSQL_PASSWORD: secret
+      MYSQL_ROOT_PASSWORD: rootsecret
     volumes:
       - mysql_data:/var/lib/mysql
     ports:
@@ -34,8 +34,8 @@ services:
       DB_HOST: db
       DB_PORT: 3306
       DB_DATABASE: isiburger_db
-      DB_USERNAME: root
-      DB_PASSWORD: ""
+      DB_USERNAME: laravel
+      DB_PASSWORD: secret
       SESSION_DRIVER: file
       CACHE_STORE: file
       QUEUE_CONNECTION: sync
