@@ -108,9 +108,9 @@ pipeline {
             echo "============================================"
             script {
                 if (isUnix()) {
-                    sh 'docker compose logs --tail=30 || true'
+                    sh 'docker-compose logs --tail=30 || true'
                 } else {
-                    bat 'docker compose logs --tail=30 2>NUL || ver >NUL'
+                    bat 'docker-compose logs --tail=30 2>NUL || ver >NUL'
                 }
             }
         }
