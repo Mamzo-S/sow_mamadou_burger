@@ -4,14 +4,14 @@ services:
     container_name: isi-burger-db
     restart: unless-stopped
     environment:
-      MYSQL_DATABASE: isi_burger
-      MYSQL_USER: laravel
-      MYSQL_PASSWORD: secret
-      MYSQL_ROOT_PASSWORD: rootsecret
+      MYSQL_DATABASE: isiburger_db
+      MYSQL_USER: root
+      MYSQL_PASSWORD:
+      MYSQL_ROOT_PASSWORD:
     volumes:
       - mysql_data:/var/lib/mysql
     ports:
-      - "3306:3306"
+      - "3307:3306"
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-ularavel", "-psecret"]
       interval: 10s
