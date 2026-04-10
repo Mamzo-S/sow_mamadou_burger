@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\FactureClientMail;
 use App\Models\Commande;
 use App\Models\Facture;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -49,7 +51,9 @@ class FactureController extends Controller
         $validated['reference'] = $validated['reference'] ?: $this->generateFactureReference();
         $validated['date_generation'] = Carbon::parse($validated['date_generation']);
 
-        Facture::create($validated);
+        $facture = Facture::create($validated);
+
+        $this->sendFactureToClient($facture);
 
         return to_route('factures.index')->with('success', 'Facture creee.');
     }
@@ -141,5 +145,18 @@ class FactureController extends Controller
         }
 
         abort(403);
+    }
+
+    private function sendFactureToClient(Facture $facture): void
+    {
+        $facture->loadMissing(['commande.client', 'commande.ligneCommandes.burger', 'commande.paiement']);
+
+        $email = $facture->commande?->client?->email;
+
+        if (! $email) {
+            return;
+        }
+
+        Mail::to($email)->send(new FactureClientMail($facture));
     }
 }

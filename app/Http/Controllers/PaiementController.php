@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\FactureClientMail;
 use App\Models\Commande;
 use App\Models\Facture;
 use App\Models\Paiement;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
@@ -67,16 +69,18 @@ class PaiementController extends Controller
         $commande = Commande::findOrFail($validated['commande_id']);
         $validated['montant'] = $commande->montant_total;
 
-        DB::transaction(function () use ($validated, $commande) {
-            $paiement = Paiement::create($validated);
+        $facture = DB::transaction(function () use ($validated, $commande) {
+            Paiement::create($validated);
 
             $commande->update([
                 'statut' => 'payee',
                 'date_paiement' => $validated['date_paiement'],
             ]);
 
-            $this->ensureFactureForCommande($commande);
+            return $this->ensureFactureForCommande($commande);
         });
+
+        $this->sendFactureToClient($facture);
 
         return to_route('paiements.index')->with('success', 'Paiement enregistre.');
     }
@@ -104,7 +108,9 @@ class PaiementController extends Controller
         $commandeSelectionnee = Commande::findOrFail($validated['commande_id']);
         $validated['montant'] = $commandeSelectionnee->montant_total;
 
-        DB::transaction(function () use ($paiement, $validated, $commandeSelectionnee) {
+        $shouldSendFacture = $paiement->commande_id !== (int) $validated['commande_id'];
+
+        $facture = DB::transaction(function () use ($paiement, $validated, $commandeSelectionnee) {
             $oldCommandeId = $paiement->commande_id;
             $paiement->update($validated);
 
@@ -124,8 +130,12 @@ class PaiementController extends Controller
                 }
             }
 
-            $this->ensureFactureForCommande($commandeSelectionnee);
+            return $this->ensureFactureForCommande($commandeSelectionnee);
         });
+
+        if ($shouldSendFacture) {
+            $this->sendFactureToClient($facture);
+        }
 
         return to_route('paiements.index')->with('success', 'Paiement modifie.');
     }
@@ -149,18 +159,33 @@ class PaiementController extends Controller
         return to_route('paiements.index')->with('delete', 'Paiement supprime.');
     }
 
-    private function ensureFactureForCommande(Commande $commande): void
+    private function ensureFactureForCommande(Commande $commande): Facture
     {
-        if ($commande->facture()->exists()) {
-            return;
+        $factureExistante = $commande->facture()->first();
+
+        if ($factureExistante) {
+            return $factureExistante;
         }
 
-        Facture::create([
+        return Facture::create([
             'commande_id' => $commande->id,
             'reference' => $this->generateFactureReference(),
             'fichier_pdf' => null,
             'date_generation' => now(),
         ]);
+    }
+
+    private function sendFactureToClient(Facture $facture): void
+    {
+        $facture->loadMissing(['commande.client', 'commande.ligneCommandes.burger', 'commande.paiement']);
+
+        $email = $facture->commande?->client?->email;
+
+        if (! $email) {
+            return;
+        }
+
+        Mail::to($email)->send(new FactureClientMail($facture));
     }
 
     private function generateFactureReference(): string
