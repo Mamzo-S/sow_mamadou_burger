@@ -77,15 +77,15 @@ pipeline {
             steps {
                 script {
                     if (isUnix()) {
-                        sh 'docker compose down --remove-orphans || true'
-                        sh 'docker compose up -d'
+                        sh 'docker-compose down --remove-orphans || true'
+                        sh 'docker-compose up -d'
                         sh 'sleep 5'
-                        sh 'docker compose ps'
+                        sh 'docker-compose ps'
                     } else {
-                        bat 'docker compose down --remove-orphans 2>NUL || ver >NUL'
-                        bat 'docker compose up -d'
+                        bat 'docker-compose down --remove-orphans 2>NUL || ver >NUL'
+                        bat 'docker-compose up -d'
                         bat 'timeout /t 5 /nobreak >NUL'
-                        bat 'docker compose ps'
+                        bat 'docker-compose ps'
                     }
                 }
             }
