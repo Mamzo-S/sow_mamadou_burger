@@ -73,3 +73,15 @@ Si tu veux tester sans Jenkins :
 docker build -t isi-burger:local .
 docker run --rm -p 8000:8000 isi-burger:local
 ```
+
+## 6. Lancement avec Docker Compose
+
+Le fichier [docker-compose.yml](C:\Users\hp\Documents\ISI\Licence 3\PHP\Exam\isi_burger\docker-compose.yml) permet de lancer l application plus vite :
+
+```bash
+docker compose up --build
+```
+
+Puis ouvrir :
+
+`http://localhost:8000`
