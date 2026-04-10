@@ -1,22 +1,30 @@
 pipeline {
     agent any
 
+    environment {
+        REPOSITORY_URL = 'https://github.com/Mamzo-S/sow_mamadou_burger.git'
+        BRANCH_TO_BUILD = 'sow_mamadou_burger'
+        DOCKER_IMAGE = 'isi-burger'
+    }
+
+    triggers {
+        githubPush()
+    }
+
     options {
         timestamps()
         disableConcurrentBuilds()
+        buildDiscarder(logRotator(numToKeepStr: '5'))
+        timeout(time: 20, unit: 'MINUTES')
         skipDefaultCheckout(true)
-    }
-
-    parameters {
-        string(name: 'REPOSITORY_URL', defaultValue: 'https://github.com/Mamzo-S/sow_mamadou_burger.git', description: 'Depot GitHub a recuperer')
-        string(name: 'BRANCH_TO_BUILD', defaultValue: 'sow_mamadou_burger', description: 'Branche GitHub a builder')
-        string(name: 'DOCKER_IMAGE', defaultValue: 'isi-burger', description: 'Nom de l image Docker')
     }
 
     stages {
         stage('Pull depuis GitHub') {
             steps {
-                git branch: "${params.BRANCH_TO_BUILD}", url: "${params.REPOSITORY_URL}"
+                echo 'Recuperation du code depuis GitHub...'
+                git branch: "${env.BRANCH_TO_BUILD}", url: "${env.REPOSITORY_URL}"
+                echo "Code recupere depuis ${env.BRANCH_TO_BUILD}"
             }
         }
 
@@ -50,9 +58,25 @@ pipeline {
             steps {
                 script {
                     if (isUnix()) {
-                        sh "docker build -t ${params.DOCKER_IMAGE}:latest -t ${params.DOCKER_IMAGE}:${env.BUILD_NUMBER} ."
+                        sh "docker build -t ${env.DOCKER_IMAGE}:latest -t ${env.DOCKER_IMAGE}:${env.BUILD_NUMBER} ."
                     } else {
-                        bat "docker build -t ${params.DOCKER_IMAGE}:latest -t ${params.DOCKER_IMAGE}:${env.BUILD_NUMBER} ."
+                        bat "docker build -t ${env.DOCKER_IMAGE}:latest -t ${env.DOCKER_IMAGE}:${env.BUILD_NUMBER} ."
+                    }
+                }
+            }
+        }
+
+        stage('Deploiement local') {
+            steps {
+                script {
+                    if (isUnix()) {
+                        sh 'docker compose down --remove-orphans || true'
+                        sh 'docker compose up -d'
+                        sh 'docker compose ps'
+                    } else {
+                        bat 'docker compose down --remove-orphans 2>NUL || ver >NUL'
+                        bat 'docker compose up -d'
+                        bat 'docker compose ps'
                     }
                 }
             }
@@ -61,10 +85,21 @@ pipeline {
 
     post {
         success {
-            echo "Pipeline terminee avec succes pour ${params.BRANCH_TO_BUILD}"
+            echo "Pipeline terminee avec succes pour ${env.BRANCH_TO_BUILD}"
+            echo 'Application disponible via Docker Compose.'
         }
         failure {
+            script {
+                if (isUnix()) {
+                    sh 'docker compose logs --tail=20 || true'
+                } else {
+                    bat 'docker compose logs --tail=20 2>NUL || ver >NUL'
+                }
+            }
             echo 'Le pipeline a echoue. Verifie Composer, Docker et les plugins Jenkins.'
+        }
+        always {
+            echo "Build #${env.BUILD_NUMBER} termine"
         }
     }
 }

@@ -1,5 +1,6 @@
 services:
   app:
+    image: isi-burger:latest
     build:
       context: .
       dockerfile: Dockerfile
@@ -15,4 +16,3 @@ services:
       CACHE_STORE: file
       QUEUE_CONNECTION: sync
     restart: unless-stopped
-

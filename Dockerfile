@@ -30,6 +30,7 @@ ENV APP_ENV=production \
     APP_DEBUG=false \
     APP_URL=http://localhost:8000 \
     DB_CONNECTION=sqlite \
+    COMPOSER_ALLOW_SUPERUSER=1 \
     SESSION_DRIVER=file \
     CACHE_STORE=file \
     QUEUE_CONNECTION=sync

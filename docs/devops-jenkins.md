@@ -5,6 +5,7 @@ Cette configuration automatise les points demandes :
 - recuperation du code depuis GitHub sur la branche `sow_mamadou_burger`
 - installation des dependances Laravel avec Composer
 - creation d une image Docker de l application
+- deploiement local avec Docker Compose
 - declenchement automatique par webhook GitHub vers Jenkins local
 
 ## 1. Branche GitHub
@@ -60,10 +61,12 @@ Webhook Jenkins a utiliser :
 ## 4. Ce que fait le Jenkinsfile
 
 - clone la branche GitHub cible
+- se declenche sur un push GitHub via `githubPush()`
 - cree `.env` si besoin
 - cree `database/database.sqlite` si besoin
 - lance `composer install`
 - construit l image Docker `isi-burger`
+- relance l application avec `docker compose up -d`
 
 ## 5. Build Docker manuel
 
