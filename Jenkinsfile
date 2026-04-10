@@ -20,11 +20,16 @@ pipeline {
     }
 
     stages {
+
         stage('Pull depuis GitHub') {
             steps {
                 echo 'Recuperation du code depuis GitHub...'
-                git branch: "${env.BRANCH_TO_BUILD}", url: "${env.REPOSITORY_URL}"
-                echo "Code recupere depuis ${env.BRANCH_TO_BUILD}"
+                checkout([
+                    $class: 'GitSCM',
+                    branches: [[name: "*/${env.BRANCH_TO_BUILD}"]],
+                    userRemoteConfigs: [[url: "${env.REPOSITORY_URL}"]]
+                ])
+                echo "Code recupere depuis la branche ${env.BRANCH_TO_BUILD}"
             }
         }
 
@@ -33,9 +38,11 @@ pipeline {
                 script {
                     if (isUnix()) {
                         sh 'test -f .env || cp .env.example .env'
+                        sh 'mkdir -p database'
                         sh 'test -f database/database.sqlite || touch database/database.sqlite'
                     } else {
                         bat 'if not exist .env copy .env.example .env'
+                        bat 'if not exist database mkdir database'
                         bat 'if not exist database\\database.sqlite type nul > database\\database.sqlite'
                     }
                 }
@@ -72,34 +79,43 @@ pipeline {
                     if (isUnix()) {
                         sh 'docker compose down --remove-orphans || true'
                         sh 'docker compose up -d'
+                        sh 'sleep 5'
                         sh 'docker compose ps'
                     } else {
                         bat 'docker compose down --remove-orphans 2>NUL || ver >NUL'
                         bat 'docker compose up -d'
+                        bat 'timeout /t 5 /nobreak >NUL'
                         bat 'docker compose ps'
                     }
                 }
             }
         }
+
     }
 
     post {
         success {
-            echo "Pipeline terminee avec succes pour ${env.BRANCH_TO_BUILD}"
-            echo 'Application disponible via Docker Compose.'
+            echo "============================================"
+            echo "Pipeline terminee avec succes !"
+            echo "Branche : ${env.BRANCH_TO_BUILD}"
+            echo "Build #${env.BUILD_NUMBER}"
+            echo "Application disponible sur http://localhost:8000"
+            echo "============================================"
         }
         failure {
+            echo "============================================"
+            echo "Le pipeline a echoue au build #${env.BUILD_NUMBER}"
+            echo "============================================"
             script {
                 if (isUnix()) {
-                    sh 'docker compose logs --tail=20 || true'
+                    sh 'docker compose logs --tail=30 || true'
                 } else {
-                    bat 'docker compose logs --tail=20 2>NUL || ver >NUL'
+                    bat 'docker compose logs --tail=30 2>NUL || ver >NUL'
                 }
             }
-            echo 'Le pipeline a echoue. Verifie Composer, Docker et les plugins Jenkins.'
         }
         always {
-            echo "Build #${env.BUILD_NUMBER} termine"
+            echo "Build #${env.BUILD_NUMBER} termine."
         }
     }
 }

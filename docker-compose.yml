@@ -1,4 +1,23 @@
 services:
+  db:
+    image: mysql:8.0
+    container_name: isi-burger-db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: isi_burger
+      MYSQL_USER: laravel
+      MYSQL_PASSWORD: secret
+      MYSQL_ROOT_PASSWORD: rootsecret
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-ularavel", "-psecret"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   app:
     image: isi-burger:latest
     build:
@@ -11,8 +30,22 @@ services:
       APP_ENV: production
       APP_DEBUG: "false"
       APP_URL: http://localhost:8000
-      DB_CONNECTION: sqlite
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: isiburger_db
+      DB_USERNAME: root
+      DB_PASSWORD: ""
       SESSION_DRIVER: file
       CACHE_STORE: file
       QUEUE_CONNECTION: sync
+    volumes:
+      - storage_data:/var/www/html/storage
+    depends_on:
+      db:
+        condition: service_healthy
     restart: unless-stopped
+
+volumes:
+  mysql_data:
+  storage_data:
